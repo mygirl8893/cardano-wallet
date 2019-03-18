@@ -157,6 +157,12 @@ test-suite integration
     , exceptions
     , fmt
     , hspec
+    , generic-lens
+    , formatting
+    , template-haskell
+    , hspec
+    , hspec-core
+    , hspec-expectations
     , memory
     , mtl
     , process
@@ -172,6 +178,7 @@ test-suite integration
       Main.hs
   other-modules:
       Test.Integration.Framework.DSL
+      Test.Integration.Framework.Scenario
 
 
 executable cardano-wallet-server

@@ -1,5 +1,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Test.Integration.Framework.DSL
     (
@@ -19,146 +21,59 @@ module Test.Integration.Framework.DSL
     , unsafeRequest
     , verify
 
-    -- * Requests (Only API types)
-    , AddressPoolGap
-    , AssuranceLevel(..)
-    , DestinationChoice(..)
-    , EosWallet(..)
-    , FilterOperations(..)
-    , NewAccount (..)
-    , NewAddress(..)
-    , NewEosWallet (..)
-    , NewWallet (..)
-    , PasswordUpdate (..)
-    , Payment (..)
-    , RawPassword (..)
-    , Redemption (..)
-    , ShieldedRedemptionCode (..)
-    , SortOperations(..)
-    , WalletOperation(..)
-    , WalletUpdate(..)
-    , defaultAccountId
-    , defaultAssuranceLevel
-    , defaultDistribution
-    , defaultAddressPoolGap
-    , customDistribution
-    , defaultGroupingPolicy
-    , defaultPage
-    , defaultPerPage
-    , defaultSetup
-    , defaultSource
-    , defaultSpendingPassword
-    , defaultWalletName
-    , mkSpendingPassword
-    , mkPassword
-    , noRedemptionMnemonic
-    , noSpendingPassword
-    , noAddressPoolGap
-
     -- * Expectations
-    , WalletError(..)
-    , ErrNotEnoughMoney(..)
-    , TransactionStatus(..)
-    , expectAddressInIndexOf
-    , expectListSizeEqual
-    , expectListItemFieldEqual
     , expectEqual
     , expectError
     , expectFieldEqual
     , expectFieldDiffer
     , expectJSONError
     , expectSuccess
-    , expectTxInHistoryOf
-    , expectTxStatusEventually
-    , expectTxStatusNever
-    , expectWalletError
-    , expectWalletEventuallyRestored
-    , expectWalletUTxO
 
     -- * Helpers
     , ($-)
     , (</>)
     , (!!)
-    , address
-    , addresses
-    , addressPoolGap
-    , amount
-    , assuranceLevel
-    , backupPhrase
-    , createdAt
-    , externallyOwnedAccounts
-    , failures
-    , fromWalletId
-    , initialCoins
-    , mnemonicWords
-    , rawAddressPoolGap
-    , rawMnemonicPassword
-    , rawPassword
-    , spendingPassword
-    , spendingPasswordLastUpdate
-    , syncState
-    , totalSuccess
-    , walAddresses
-    , wallet
-    , walletId
-    , walletName
     , wallets
     , json
-    , hasSpendingPassword
-    , mkAddress
-    , mkBackupPhrase
     ) where
 
-import           Universum hiding (getArgs, second)
+import Prelude hiding
+    ( getArgs, second )
 
-import           Control.Concurrent (threadDelay)
-import           Control.Concurrent.Async (race)
-import           Crypto.Hash (hash)
-import           Crypto.Hash.Algorithms (Blake2b_256)
-import           Data.Aeson.QQ (aesonQQ)
+import Control.Concurrent
+    ( threadDelay )
+import Control.Concurrent.Async
+    ( race )
 import qualified Data.ByteArray as ByteArray
-import           Data.Default (Default (..))
 import qualified Data.Foldable as F
-import           Data.Generics.Internal.VL.Lens (lens)
-import           Data.Generics.Product.Fields (field)
-import           Data.Generics.Product.Positions (HasPosition, position)
-import           Data.Generics.Product.Typed (HasType, typed)
-import           Data.List ((!!))
+import Data.Generics.Internal.VL.Lens
+    ( lens )
+import Data.Generics.Product.Fields
+    ( field )
+import Data.Generics.Product.Positions
+    ( HasPosition, position )
+import Data.Generics.Product.Typed
+    ( HasType, typed )
+import Data.List
+    ( (!!) )
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import           Data.Typeable (typeOf, typeRepTyCon)
-import           Formatting (build, sformat)
-import           Language.Haskell.TH.Quote (QuasiQuoter)
-import           Test.Hspec.Core.Spec (SpecM, it, xit)
+import Data.Typeable
+    ( typeOf, typeRepTyCon )
+import Formatting
+    ( build, sformat )
+import Language.Haskell.TH.Quote
+    ( QuasiQuoter )
+import Test.Hspec.Core.Spec
+    ( SpecM, it, xit )
 import qualified Test.Hspec.Core.Spec as H
-import           Test.Hspec.Expectations.Lifted
-import           Test.QuickCheck (arbitrary, generate)
-import           Web.HttpApiData (ToHttpApiData (..))
+--import           Test.Hspec.Expectations.Lifted
+import Test.QuickCheck
+    ( arbitrary, generate )
+--import           Web.HttpApiData (ToHttpApiData (..))
 
-import           Cardano.Mnemonic (mkMnemonic, mnemonicToSeed)
-import           Cardano.Wallet.API.Request.Filter (FilterOperations (..))
-import           Cardano.Wallet.API.Request.Pagination (Page, PerPage)
-import           Cardano.Wallet.API.Request.Sort (SortOperations (..))
-import           Cardano.Wallet.API.Response (JSONValidationError (..))
-import           Cardano.Wallet.API.V1.Types
-import           Cardano.Wallet.Client.Http (BaseUrl, ClientError (..), Manager,
-                     WalletClient)
-import qualified Cardano.Wallet.Client.Http as Client
-import           Cardano.Wallet.Kernel.AddressPoolGap (AddressPoolGap,
-                     mkAddressPoolGap)
-import           Cardano.Wallet.Kernel.Ed25519Bip44 (deriveAccountPrivateKey,
-                     derivePublicKey, genEncryptedSecretKey)
-import           Pos.Chain.Txp (TxIn (..), TxOut (..), TxOutAux (..))
-import           Pos.Core (Coin, IsBootstrapEraAddr (..), deriveLvl2KeyPair,
-                     mkCoin, unsafeGetCoin)
-import           Pos.Core.NetworkMagic (NetworkMagic (..))
-import           Pos.Crypto (ShouldCheckPassphrase (..),
-                     safeDeterministicKeyGen)
-import           Test.Integration.Framework.Request (HasHttpClient, request,
-                     request_, successfulRequest, unsafeRequest, ($-))
-import           Test.Integration.Framework.Scenario (Scenario)
 --
 -- SCENARIO
 --
@@ -210,156 +125,7 @@ pendingWith
     -> m ()
 pendingWith = liftIO . H.pendingWith
 
---
--- TYPES
---
 
-data DestinationChoice
-    = RandomDestination
-    | LockedDestination
-    deriving (Show, Generic)
-
-newtype RawPassword = RawPassword { getRawPassword :: Text }
-    deriving stock (Show, Generic)
-    deriving newtype (Monoid, Semigroup)
-
-instance IsString RawPassword where
-    fromString = RawPassword . T.pack
-
-
---
--- STEPS
---
-
-data Setup = Setup
-    { _initialCoins
-        :: [Coin]
-    , _walletName
-        :: Text
-    , _assuranceLevel
-        :: AssuranceLevel
-    , _mnemonicWords
-        :: [Text]
-    , _rawPassword
-        :: RawPassword
-    , _rawMnemonicPassword
-        :: RawPassword
-    , _rawAddressPoolGap
-        :: Word8
-    } deriving (Show, Generic)
-
-data Fixture = Fixture
-    { _wallet
-        :: Wallet
-    , _destinations
-        :: NonEmpty Address
-    , _backupPhrase
-        :: BackupPhrase
-    , _spendingPassword
-        :: SpendingPassword
-    , _eoAccounts
-        :: [AccountPublicKeyWithIx]
-        -- ^ WARNING We rely on lazyness here, so don't make this strict
-    , _addressPoolGap
-        :: AddressPoolGap
-    } deriving (Show, Generic)
-
--- | Setup a wallet with the given parameters.
-setup
-    :: Setup
-    -> Scenario Context IO Fixture
-setup args = do
-    phrase <- if null (args ^. mnemonicWords)
-        then liftIO $ generate arbitrary
-        else mkBackupPhrase (args ^. mnemonicWords)
-    let walPwd@(WalletPassPhrase pwd) = mkPassword (args ^. rawPassword)
-    wal <- setupWallet args phrase walPwd
-    addrs  <- forM (RandomDestination :| []) setupDestination
-    let accs = genExternallyOwnedAccounts (phrase, args ^. rawMnemonicPassword) pwd
-    gap <- unsafeMkAddressPoolGap  (args ^. rawAddressPoolGap)
-    return $ Fixture wal addrs phrase walPwd accs gap
-
--- | Apply 'a' to all actions in sequence
-verify :: (Monad m) => a -> [a -> m ()] -> m ()
-verify a = mapM_ (a &)
-
-
---
--- DEFAULT VALUES
---
-
-defaultAccountId :: AccountIndex
-defaultAccountId = minBound
-
-defaultAddressPoolGap :: AddressPoolGap
-defaultAddressPoolGap = def
-
-defaultAssuranceLevel :: AssuranceLevel
-defaultAssuranceLevel = NormalAssurance
-
-defaultDistribution
-    :: HasType (NonEmpty Address) s
-    => Word64
-    -> s
-    -> NonEmpty PaymentDistribution
-defaultDistribution c s = pure $
-    PaymentDistribution (WalAddress $ head $ s ^. typed) (WalletCoin $ mkCoin c)
-
-customDistribution
-    :: NonEmpty (Account,Word64)
-    -> NonEmpty PaymentDistribution
-customDistribution payees =
-    let recepientWalAddresses = NonEmpty.fromList
-                                $ map (view walAddresses)
-                                $ concatMap (view addresses . fst)
-                                $ payees
-    in NonEmpty.zipWith
-       PaymentDistribution
-       recepientWalAddresses
-       (map ((\coin -> WalletCoin $ mkCoin coin) . snd) payees)
-
-
-defaultGroupingPolicy :: Maybe WalletInputSelectionPolicy
-defaultGroupingPolicy = Nothing
-
-defaultPage :: Maybe Page
-defaultPage = Nothing
-
-defaultPerPage :: Maybe PerPage
-defaultPerPage = Nothing
-
-defaultSetup :: Setup
-defaultSetup = Setup
-    { _initialCoins        = []
-    , _walletName          = defaultWalletName
-    , _assuranceLevel      = defaultAssuranceLevel
-    , _mnemonicWords       = []
-    , _rawPassword         = mempty
-    , _rawMnemonicPassword = mempty
-    , _rawAddressPoolGap   = 20
-    }
-
-defaultSource
-    :: HasType Wallet s
-    => s
-    -> PaymentSource
-defaultSource s =
-    PaymentSource (s ^. wallet . walletId) defaultAccountId
-
-defaultSpendingPassword :: SpendingPassword
-defaultSpendingPassword = mempty
-
-defaultWalletName :: Text
-defaultWalletName = "Fixture Wallet"
-
-noRedemptionMnemonic :: Maybe RedemptionMnemonic
-noRedemptionMnemonic = Nothing
-
-noSpendingPassword :: Maybe SpendingPassword
-noSpendingPassword = Nothing
-
-noAddressPoolGap :: Maybe AddressPoolGap
-noAddressPoolGap = Nothing
 
 --
 -- HELPERS
@@ -372,94 +138,6 @@ infixr 5 </>
 (</>) :: ToHttpApiData a => Text -> a -> Text
 base </> next = mconcat [base, "/", toQueryParam next]
 
-address :: HasType WalAddress s => Lens' s WalAddress
-address = typed
-
-addressPoolGap :: HasType AddressPoolGap s => Lens' s AddressPoolGap
-addressPoolGap = typed
-
-amount :: HasType WalletCoin s => Lens' s Word64
-amount =
-    lens _get _set
-  where
-    _get :: HasType WalletCoin s => s -> Word64
-    _get = unsafeGetCoin . unWalletCoin . view typed
-    _set :: HasType WalletCoin s => (s, Word64) -> s
-    _set (s, v) = set typed (WalletCoin $ mkCoin v) s
-
-assuranceLevel :: HasType AssuranceLevel s => Lens' s AssuranceLevel
-assuranceLevel = typed
-
-backupPhrase :: HasType BackupPhrase s => Lens' s BackupPhrase
-backupPhrase = typed
-
-createdAt :: HasPosition 6 s s WalletTimestamp WalletTimestamp => Lens' s WalletTimestamp
-createdAt = position @6
-
-externallyOwnedAccounts :: HasType [AccountPublicKeyWithIx] s => Lens' s [AccountPublicKeyWithIx]
-externallyOwnedAccounts = typed
-
-failures :: Lens' (BatchImportResult a) [a]
-failures = field @"aimFailures"
-
-faucets :: HasType [FilePath] s => Lens' s [FilePath]
-faucets = typed
-
-initialCoins
-    :: HasType [Coin] s
-    => Lens' s [Word64]
-initialCoins =
-    lens _get _set
-  where
-    _get :: HasType [Coin] s => s -> [Word64]
-    _get = map unsafeGetCoin . view typed
-    _set :: HasType [Coin] s => (s, [Word64]) -> s
-    _set (s, v) = set typed (map mkCoin v) s
-
-mnemonicWords :: HasType [Text] s => Lens' s [Text]
-mnemonicWords = typed
-
-hasSpendingPassword :: HasType Bool s => Lens' s Bool
-hasSpendingPassword = typed
-
-rawAddressPoolGap :: Lens' Setup Word8
-rawAddressPoolGap = field @"_rawAddressPoolGap"
-
-rawPassword :: Lens' Setup RawPassword
-rawPassword = field @"_rawPassword"
-
-rawMnemonicPassword :: Lens' Setup RawPassword
-rawMnemonicPassword = field @"_rawMnemonicPassword"
-
-spendingPassword :: HasType SpendingPassword s => Lens' s SpendingPassword
-spendingPassword = typed
-
-syncState :: HasType SyncState s => Lens' s SyncState
-syncState = typed
-
-totalSuccess :: Lens' (BatchImportResult a) Natural
-totalSuccess = field @"aimTotalSuccess"
-
-wallet :: HasType Wallet s => Lens' s Wallet
-wallet = typed
-
-wallets :: HasType [Wallet] s => Lens' s [Wallet]
-wallets = typed
-
-walletId :: HasType WalletId s => Lens' s WalletId
-walletId = typed
-
-walletName :: HasType Text s => Lens' s Text
-walletName = typed
-
-spendingPasswordLastUpdate :: Lens' Wallet WalletTimestamp
-spendingPasswordLastUpdate = field @"walSpendingPasswordLastUpdate"
-
-addresses :: HasType [WalletAddress] s => Lens' s [WalletAddress]
-addresses = typed
-
-walAddresses :: HasType WalAddress s => Lens' s WalAddress
-walAddresses = typed
 
 --
 -- EXPECTATIONS

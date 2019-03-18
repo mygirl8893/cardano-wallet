@@ -131,6 +131,48 @@ test-suite unit
       Cardano.Wallet.PrimitiveSpec
       Cardano.WalletSpec
 
+test-suite integration
+  default-language:
+      Haskell2010
+  default-extensions:
+      NoImplicitPrelude
+      OverloadedStrings
+  ghc-options:
+      -threaded -rtsopts
+      -Wall
+      -O2
+  if (!flag(development))
+    ghc-options:
+      -Werror
+  build-depends:
+      base
+    , async
+    , base58-bytestring
+    , bytestring
+    , cardano-crypto
+    , cardano-wallet
+    , cborg
+    , containers
+    , deepseq
+    , exceptions
+    , fmt
+    , hspec
+    , memory
+    , mtl
+    , process
+    , QuickCheck
+    , text
+    , time-units
+    , transformers
+  type:
+     exitcode-stdio-1.0
+  hs-source-dirs:
+      test/integration
+  main-is:
+      Main.hs
+  other-modules:
+      Test.Integration.Framework.DSL
+
 
 executable cardano-wallet-server
   default-language:

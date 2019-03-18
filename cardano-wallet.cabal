@@ -146,6 +146,9 @@ test-suite integration
       -Werror
   build-depends:
       base
+    , QuickCheck
+    , aeson
+    , aeson-qq
     , async
     , base58-bytestring
     , bytestring
@@ -156,17 +159,17 @@ test-suite integration
     , deepseq
     , exceptions
     , fmt
-    , hspec
-    , generic-lens
     , formatting
-    , template-haskell
+    , generic-lens
+    , hspec
     , hspec
     , hspec-core
     , hspec-expectations
+    , http-api-data
     , memory
     , mtl
     , process
-    , QuickCheck
+    , template-haskell
     , text
     , time-units
     , transformers

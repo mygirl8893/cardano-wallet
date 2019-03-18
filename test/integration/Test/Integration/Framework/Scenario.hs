@@ -1,11 +1,30 @@
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Test.Integration.Framework.Scenario
     ( Scenario
     ) where
 
-import           Prelude
+import Prelude
 
-import           Test.Hspec.Core.Spec (Example (..), Result (..),
-                     ResultStatus (..))
+import Control.Concurrent.MVar
+    ( MVar, putMVar, takeMVar )
+import Control.Monad
+    ( (>=>) )
+import Control.Monad.Catch
+    ( MonadCatch (..), MonadMask (..), MonadThrow (..), bracketOnError )
+import Control.Monad.Fail
+    ( MonadFail (..) )
+import Control.Monad.Reader
+    ( MonadIO, MonadReader (ask, local) )
+import Control.Monad.State
+    ( MonadState (..), StateT (..) )
+import Test.Hspec.Core.Spec
+    ( Example (..), Result (..), ResultStatus (..) )
 
 
 -- | A Wrapper around 'StateT' around which we define a few instances. The most
@@ -39,7 +58,6 @@ instance Example (Scenario s IO ()) where
     evaluateExample (Scenario io) _ action _ =
         action runAndPersist >> return (Result "" Success)
       where
-        runAndPersist :: MVar s -> IO ()
         runAndPersist mvar = do
             let acquire = takeMVar mvar
             let release = putMVar mvar

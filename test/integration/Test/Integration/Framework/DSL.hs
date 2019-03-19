@@ -88,7 +88,7 @@ xscenario = xit
 --          pendingWith "This test fails due to bug #213"
 --          test
 pendingWith
-    :: (MonadIO m, MonadFail m)
+    :: (MonadIO m)
     => String
     -> m ()
 pendingWith = liftIO . H.pendingWith
@@ -110,7 +110,7 @@ expectError = \case
 
 -- | Expect a successful response, without any further assumptions
 expectSuccess
-    :: (MonadIO m, MonadFail m, Show a)
+    :: (MonadIO m, MonadFail m)
     => Either RequestException a
     -> m ()
 expectSuccess = \case

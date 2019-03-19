@@ -165,9 +165,9 @@ test-suite integration
     , http-client
     , http-types
     , lens
-    , mtl
     , process
     , text
+    , transformers
 
   type:
      exitcode-stdio-1.0

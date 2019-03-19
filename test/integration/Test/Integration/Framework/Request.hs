@@ -18,11 +18,11 @@ import Control.Exception
 import Control.Lens
     ( Lens', view )
 import Control.Monad.Catch
-    ( Exception (..), MonadCatch (..), MonadThrow )
+    ( Exception (..) )
 import Control.Monad.IO.Class
     ( MonadIO, liftIO )
-import Control.Monad.Reader
-    ( MonadReader (..) )
+import Control.Monad.Trans.Reader
+    ( ReaderT (..) )
 import Data.Aeson
     ( FromJSON )
 import Data.Bifunctor
@@ -76,21 +76,18 @@ unsafeRequest
     :: forall a m ctx.
         ( FromJSON a
         , MonadIO m
-        , MonadThrow m
-        , MonadCatch m
-        , MonadReader ctx m
         , HasManager ctx
         )
     => (Method, Text)
     -> Maybe Aeson.Value
-    -> m (Either RequestException a)
+    -> ReaderT ctx m (Either RequestException a)
 unsafeRequest (verb, path) body = do
     (base, man) <- view manager
     http <- tryHttp $ do
         req <- parseRequest $ T.unpack $ base <> path
         res <- httpLbs (prepare req) man
         pure (req, res)
-    pure (handleResponse =<< http)
+    return (handleResponse =<< http)
 
   where
     prepare :: HTTP.Request -> HTTP.Request
@@ -105,7 +102,7 @@ unsafeRequest (verb, path) body = do
 
     -- Catch HttpExceptions and turn them into
     -- Either RequestExceptions.
-    tryHttp :: IO r -> m (Either RequestException r)
+    tryHttp :: IO r -> ReaderT ctx m (Either RequestException r)
     tryHttp = liftIO . fmap (first HttpException) . try
 
     -- Either decode response body, or provide a RequestException.

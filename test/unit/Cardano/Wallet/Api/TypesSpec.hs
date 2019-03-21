@@ -70,6 +70,20 @@ spec = do
             roundtripAndGolden $ Proxy @ WalletPassphraseInfo
             roundtripAndGolden $ Proxy @ WalletState
 
+-- | Run JSON roundtrip & golden tests
+--
+-- Golden tests files are generated automatically on first run. On later runs
+-- we check that the format stays the same. The golden files should be tracked
+-- in git.
+--
+-- Example:
+-- >>> roundtripAndGolden $ Proxy @ Wallet
+--
+-- ...will compare @ToJSON@ of @Wallet@ against `Wallet.json`. It may either
+-- match and succeed, or fail and write `Wallet.faulty.json` to disk with the
+-- new format. Faulty golden files should /not/ be commited.
+--
+-- The directory `test/data/Cardano/Wallet/Api` is used.
 roundtripAndGolden
     :: forall a. (Arbitrary a, ToJSON a, FromJSON a, Typeable a)
     => Proxy a

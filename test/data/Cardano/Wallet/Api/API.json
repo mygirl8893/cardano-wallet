@@ -1,0 +1,63 @@
+{
+    "seed": -4252553813492444606,
+    "samples": [
+        {
+            "tag": "A",
+            "contents": {
+                "passphrase": {
+                    "last_updated_at": "1864-05-14T17:07:13.547386314108Z"
+                },
+                "address_pool_gap": 14,
+                "state": {
+                    "status": "ready"
+                },
+                "balance": {
+                    "total": {
+                        "quantity": 213,
+                        "unit": "lovelace"
+                    },
+                    "available": {
+                        "quantity": 164,
+                        "unit": "lovelace"
+                    }
+                },
+                "name": "DZ*X)t𢙲O08Ge|&𐔑\\;]R&RBIU$_vVT\\sws0*Z[WrR?'Mbnra>CGQV_h-rc,`/Y;[y(Av",
+                "delegation": {
+                    "status": "delegating",
+                    "target": "00003a33-0000-1e62-0000-6eaa00002a47"
+                },
+                "id": "000048ac-0000-2cbe-0000-5d7b000025a4"
+            }
+        },
+        {
+            "tag": "D",
+            "contents": {
+                "status": "delegating",
+                "target": "00004e27-0000-2bbc-0000-09a700005200"
+            }
+        },
+        {
+            "tag": "C",
+            "contents": {
+                "total": {
+                    "quantity": 252,
+                    "unit": "lovelace"
+                },
+                "available": {
+                    "quantity": 77,
+                    "unit": "lovelace"
+                }
+            }
+        },
+        {
+            "tag": "F",
+            "contents": "Magenta"
+        },
+        {
+            "tag": "D",
+            "contents": {
+                "status": "not_delegating"
+            }
+        }
+    ]
+}

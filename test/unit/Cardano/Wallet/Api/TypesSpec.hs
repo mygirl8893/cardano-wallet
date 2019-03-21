@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -55,6 +56,45 @@ import Test.QuickCheck.Instances.Time
 import qualified Data.Text as T
 import qualified Data.UUID.Types as UUID
 
+import GHC.Generics
+    ( Generic )
+
+data Color
+    = Red
+    | Green
+    | Blue
+    | Yellow
+    | NonWhite
+    | AntiGreen
+    | Magenta
+    | Transparent
+    | Null
+    deriving (Generic)
+
+instance ToJSON Color
+instance FromJSON Color
+
+instance ToJSON API
+instance FromJSON API
+
+instance Arbitrary API where
+    arbitrary = genericArbitrary
+    shrink = genericShrink
+
+
+instance Arbitrary Color where
+    arbitrary = genericArbitrary
+    shrink = genericShrink
+
+data API
+    = A Wallet
+    | B (ApiT AddressPoolGap)
+    | C WalletBalance
+    | D WalletDelegation
+    | E WalletPassphraseInfo
+    | F Color
+    deriving (Generic)
+
 spec :: Spec
 spec = do
     describe
@@ -69,6 +109,7 @@ spec = do
             roundtripAndGolden $ Proxy @ WalletBalance
             roundtripAndGolden $ Proxy @ WalletPassphraseInfo
             roundtripAndGolden $ Proxy @ WalletState
+            roundtripAndGolden $ Proxy @ API
 
 -- | Run JSON roundtrip & golden tests
 --

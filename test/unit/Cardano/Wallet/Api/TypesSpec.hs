@@ -11,13 +11,15 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 
 module Cardano.Wallet.Api.TypesSpec (spec) where
 
 import Prelude
 
 import Cardano.Wallet.Api
-    ( api )
+    ( Api, ListWallets, api )
 import Cardano.Wallet.Api.Types
     ( AddressPoolGap
     , ApiT (..)
@@ -61,7 +63,7 @@ import Data.Swagger
     , put
     )
 import Data.Typeable
-    ( Typeable )
+    ( Typeable, typeOf )
 import Data.Word
     ( Word32, Word8 )
 import GHC.TypeLits
@@ -69,7 +71,7 @@ import GHC.TypeLits
 import Numeric.Natural
     ( Natural )
 import Servant
-    ( (:<|>), (:>), Capture, StdMethod (..), Verb )
+    ( (:<|>), (:>), Capture, Get, JSON, NoContent, StdMethod (..), Verb )
 import Servant.Swagger.Test
     ( validateEveryToJSON )
 import Test.Aeson.GenericSpecs
@@ -104,6 +106,8 @@ import qualified Data.Yaml as Yaml
 
 spec :: Spec
 spec = do
+    describe "test" $ do
+        checkJSON (Proxy @Api)
     describe
         "can perform roundtrip JSON serialization & deserialization, \
         \and match existing golden files" $ do
@@ -310,24 +314,30 @@ instance (KnownSymbol param, HasPath sub) => HasPath (Capture param t :> sub)
 class CheckJSON api where
     checkJSON :: Proxy api -> Spec
 
-
-class CheckJSON2 api where
-    checkJSON2 :: Proxy api -> Spec
-
-instance  (ToJSON a, Arbitrary a) => CheckJSON2 (Verb m s ct a) where
-    checkJSON2 _ = do
-        s <- runIO $ generate (arbitrary :: Gen a)
-        it "Test" $ do
-            (Aeson.encode s) `shouldBe` ""
+instance {-# OVERLAPS #-}(Typeable a, Arbitrary a, ToJSON a, FromJSON a, Method m) => CheckJSON (Verb m s ct a) where
+    checkJSON _ = do
+        describe (show $ typeOf $ Proxy @a) $ do
+            roundtripAndGolden $ Proxy @a
 
 
-instance {-# OVERLAPS #-} CheckJSON2 a => CheckJSON a where
-    checkJSON = checkJSON2
 
-instance (CheckJSON2 a, CheckJSON b) => CheckJSON (a :<|> b) where
+instance Method m => CheckJSON (Verb m s ct NoContent) where
+    checkJSON _ = return ()
+
+instance (CheckJSON b, KnownSymbol a)=> CheckJSON (a :> b) where
+     checkJSON _ = do
+        checkJSON (Proxy @b)
+
+instance (CheckJSON b, KnownSymbol param)=> CheckJSON (Capture param t :> b) where
+     checkJSON _ = do
+        checkJSON (Proxy @b)
+
+
+instance (CheckJSON a, CheckJSON b) => CheckJSON (a :<|> b) where
      checkJSON _ = do
         checkJSON (Proxy @a)
         checkJSON (Proxy @b)
+
 
 
 -- A way to demote 'StdMethod' back to the world of values. Servant provides a

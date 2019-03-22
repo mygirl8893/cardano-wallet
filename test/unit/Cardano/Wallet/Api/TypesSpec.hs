@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -82,14 +83,21 @@ import Test.Aeson.GenericSpecs
     , useModuleNameAsSubDirectory
     )
 import Test.Hspec
-    ( Spec, describe, it )
+    ( Spec, describe, it, runIO, shouldBe )
 import Test.QuickCheck
-    ( Arbitrary (..), arbitraryBoundedEnum, arbitraryPrintableChar, choose )
+    ( Arbitrary (..)
+    , Gen
+    , arbitraryBoundedEnum
+    , arbitraryPrintableChar
+    , choose
+    , generate
+    )
 import Test.QuickCheck.Arbitrary.Generic
     ( genericArbitrary, genericShrink )
 import Test.QuickCheck.Instances.Time
     ()
 
+import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
 import qualified Data.UUID.Types as UUID
 import qualified Data.Yaml as Yaml
@@ -297,6 +305,30 @@ instance (KnownSymbol param, HasPath sub) => HasPath (Capture param t :> sub)
     getPath _ =
         let (verb, sub) = getPath (Proxy @sub)
         in (verb, "/{" <> symbolVal (Proxy :: Proxy param) <> "}" <> sub)
+
+
+class CheckJSON api where
+    checkJSON :: Proxy api -> Spec
+
+
+class CheckJSON2 api where
+    checkJSON2 :: Proxy api -> Spec
+
+instance  (ToJSON a, Arbitrary a) => CheckJSON2 (Verb m s ct a) where
+    checkJSON2 _ = do
+        s <- runIO $ generate (arbitrary :: Gen a)
+        it "Test" $ do
+            (Aeson.encode s) `shouldBe` ""
+
+
+instance {-# OVERLAPS #-} CheckJSON2 a => CheckJSON a where
+    checkJSON = checkJSON2
+
+instance (CheckJSON2 a, CheckJSON b) => CheckJSON (a :<|> b) where
+     checkJSON _ = do
+        checkJSON (Proxy @a)
+        checkJSON (Proxy @b)
+
 
 -- A way to demote 'StdMethod' back to the world of values. Servant provides a
 -- 'reflectMethod' that does just that, but demote types to raw 'ByteString' for

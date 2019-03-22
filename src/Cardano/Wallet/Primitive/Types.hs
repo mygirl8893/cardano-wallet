@@ -222,15 +222,8 @@ instance Buildable (TxIn, TxOut) where
 
 data TxMeta = TxMeta
     { metaId :: !(Hash "Tx")
-    -- FIXME: we might want to go for something more optimized than natural,
-    -- like Word64 ?
     , depth :: !(Quantity "block" Natural)
     , status :: !TxStatus
-    -- FIXME: should we use Quantity "lovelace" Natural ?
-    -- I wonder could we use somethine like proposed instead of Coin in wallet
-    -- part alltogether. Node/core bits would still work optimally with
-    -- Coin/Word64
-    -- but wallet bits could go a bit more abstract (and less optimized)?
     , amount :: !Coin
     , direction :: !Direction
     , timestamp :: !Timestamp
@@ -249,8 +242,6 @@ data Direction
     deriving (Show, Eq, Generic)
 
 newtype Timestamp = Timestamp
-    -- NOTE: We could have gone for Microsecond from Data.Time.Units, but
-    -- it seems like an overkill for now
     { getTimestamp :: UTCTime
     } deriving (Show, Generic, Eq, Ord)
 

@@ -27,8 +27,8 @@ import Control.Monad.Trans.Except
     ( runExceptT )
 import Test.Hspec
     ( Spec
-    , afterAll
-    , beforeAll
+    , after
+    , before
     , describe
     , it
     , shouldReturn
@@ -43,7 +43,7 @@ port = 1337
 
 spec :: Spec
 spec = do
-    describe "Happy paths" $ beforeAll startBridge $ afterAll (cancel . fst) $ do
+    describe "Happy paths" $ before startBridge $ after (cancel . fst) $ do
         it "get from packed epochs" $ \(_, network) -> do
             let blocks = runExceptT $ nextBlocks network (SlotId 14 0)
             (fmap length <$> blocks)

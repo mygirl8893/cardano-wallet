@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -19,7 +20,7 @@ module Cardano.Wallet.Api.TypesSpec (spec) where
 import Prelude
 
 import Cardano.Wallet.Api
-    ( Api, ListWallets, api )
+    ( Api, api )
 import Cardano.Wallet.Api.Types
     ( AddressPoolGap
     , ApiT (..)
@@ -104,10 +105,11 @@ import qualified Data.Text as T
 import qualified Data.UUID.Types as UUID
 import qualified Data.Yaml as Yaml
 
+
 spec :: Spec
 spec = do
     describe "test" $ do
-        checkJSON (Proxy @Api)
+        checkJSON $ Proxy @Api
     describe
         "can perform roundtrip JSON serialization & deserialization, \
         \and match existing golden files" $ do
@@ -314,23 +316,31 @@ instance (KnownSymbol param, HasPath sub) => HasPath (Capture param t :> sub)
 class CheckJSON api where
     checkJSON :: Proxy api -> Spec
 
-instance {-# OVERLAPS #-}(Typeable a, Arbitrary a, ToJSON a, FromJSON a, Method m) => CheckJSON (Verb m s ct a) where
+type Checkable a = (Typeable a, Arbitrary a, ToJSON a, FromJSON a)
+
+instance {-# OVERLAPS #-}(Checkable a, Method m) => CheckJSON (Verb m s ct a) where
     checkJSON _ = do
         describe (show $ typeOf $ Proxy @a) $ do
             roundtripAndGolden $ Proxy @a
 
 
+instance {-# OVERLAPS #-}(Checkable a) => CheckJSON (a) where
+    checkJSON _ = do
+        describe (show $ typeOf $ Proxy @a) $ do
+            roundtripAndGolden $ Proxy @a
+
 
 instance Method m => CheckJSON (Verb m s ct NoContent) where
     checkJSON _ = return ()
 
-instance (CheckJSON b, KnownSymbol a)=> CheckJSON (a :> b) where
+instance (CheckJSON b, KnownSymbol a) => CheckJSON (a :> b) where
      checkJSON _ = do
         checkJSON (Proxy @b)
 
-instance (CheckJSON b, KnownSymbol param)=> CheckJSON (Capture param t :> b) where
+instance (CheckJSON b, CheckJSON t, KnownSymbol param) => CheckJSON (Capture param t :> b) where
      checkJSON _ = do
         checkJSON (Proxy @b)
+
 
 
 instance (CheckJSON a, CheckJSON b) => CheckJSON (a :<|> b) where
